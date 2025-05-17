@@ -1,0 +1,61 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// 种子记录模型
+model TorrentRecord {
+  id            String   @id @default(uuid())
+  infoHash      String   @unique
+  name          String?
+  magnetURI     String
+  size          BigInt?
+  dateAdded     DateTime @default(now())
+  dateCompleted DateTime?
+  isDeleted     Boolean  @default(false)
+  isPaused      Boolean  @default(false)
+  progress      Float    @default(0)
+  downloadSpeed Float?
+  uploadSpeed   Float?
+  downloaded    BigInt   @default(0)
+  uploaded      BigInt   @default(0)
+  timeRemaining BigInt?
+  numPeers      Int      @default(0)
+  numSeeds      Int      @default(0)
+  
+  // 文件相关信息
+  saveLocation  String?
+  
+  // 元数据信息
+  metadata      String?
+  
+  // 文件列表-一对多关系
+  files         TorrentFile[]
+
+  @@map("torrent_records")
+}
+
+// 种子中的文件模型
+model TorrentFile {
+  id            String   @id @default(uuid())
+  path          String
+  name          String
+  size          BigInt
+  progress      Float    @default(0)
+  isSelected    Boolean  @default(true)
+  index         Int      @default(0) // 添加文件索引字段
+  torrentId     String
+  torrent       TorrentRecord @relation(fields: [torrentId], references: [id], onDelete: Cascade)
+
+  @@map("torrent_files")
+}

@@ -1,0 +1,1554 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BT下载客户端</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #1a73e8;
+            margin-top: 0;
+        }
+        .input-group {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px 0 0 4px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 0 4px 4px 0;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0d66d0;
+        }
+        .layout {
+            display: flex;
+            gap: 20px;
+        }
+        .torrents-container {
+            flex: 1;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+            max-height: calc(100vh - 170px);
+            overflow-y: auto;
+        }
+        .player-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+            max-width: 60%;
+        }
+        .video-container {
+            background-color: #000;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            flex: 1;
+            position: relative;
+            min-height: 300px;
+        }
+        .video-player {
+            width: 100%;
+            height: 100%;
+            max-height: calc(100vh - 240px);
+        }
+        .no-video {
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+        .torrents {
+            width: 100%;
+        }
+        .torrent {
+            margin-bottom: 15px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+        }
+        .torrent-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+        .torrent-name-container {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            flex-wrap: wrap;
+        }
+        .torrent-name {
+            font-weight: bold;
+            font-size: 18px;
+            max-width: 85%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            margin-right: 8px;
+        }
+        .status {
+            font-size: 14px;
+            padding: 3px 8px;
+            border-radius: 3px;
+            color: white;
+        }
+        .status-downloading {
+            background-color: #4caf50;
+        }
+        .status-completed {
+            background-color: #2196f3;
+        }
+        .status-error {
+            background-color: #f44336;
+        }
+        .status-metadata {
+            background-color: #ff9800;
+        }
+        .status-pending {
+            background-color: #9e9e9e;
+        }
+        .progress-bar {
+            height: 8px;
+            background-color: #e0e0e0;
+            border-radius: 4px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background-color: #4caf50;
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+        .torrent-details {
+            font-size: 14px;
+            color: #666;
+            margin-top: 10px;
+        }
+        .actions {
+            margin-top: 15px;
+        }
+        .actions button {
+            border-radius: 4px;
+            font-size: 14px;
+            padding: 5px 10px;
+            margin-right: 5px;
+        }
+        .btn-watch {
+            background-color: #4caf50;
+        }
+        .btn-delete {
+            background-color: #f44336;
+        }
+        .torrent-info {
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        .files-list {
+            max-height: 100px;
+            overflow-y: auto;
+            margin-top: 10px;
+            padding: 5px;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .engine-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 12px;
+            color: white;
+            margin-left: 8px;
+        }
+        .engine-webtorrent {
+            background-color: #673ab7;
+        }
+        .now-playing {
+            margin-top: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #1a73e8;
+        }
+        @media (max-width: 768px) {
+            .layout {
+                flex-direction: column;
+            }
+            .player-container {
+                max-width: 100%;
+                min-height: 200px;
+                margin-bottom: 20px;
+            }
+            .video-player {
+                max-height: 300px;
+            }
+        }
+        .deleted-torrent {
+            opacity: 0.7;
+            position: relative;
+        }
+        .deleted-torrent::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background-color: #f44336;
+        }
+        .torrent-status {
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            display: inline-block;
+            margin-left: 8px;
+            color: white;
+        }
+        .status-paused {
+            background-color: #ff9800;
+        }
+        .status-done {
+            background-color: #4caf50;
+        }
+        .status-downloading {
+            background-color: #2196F3;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+        .progress-bar {
+            background-color: #eee;
+            border-radius: 3px;
+            height: 10px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        .progress {
+            background-color: #4caf50;
+            height: 100%;
+            transition: width 0.5s;
+        }
+        .torrent-title {
+            margin: 0;
+            font-size: 16px;
+            max-width: 80%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .torrent-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 5px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        .torrent-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 10px;
+        }
+        .torrent-actions button {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 3px;
+            background-color: #2196F3;
+            color: white;
+            cursor: pointer;
+        }
+        .torrent-actions button:hover {
+            opacity: 0.9;
+        }
+        .torrent-actions button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .btn-delete {
+            background-color: #f44336 !important;
+        }
+        .btn-play {
+            background-color: #4caf50 !important;
+        }
+        .no-torrents {
+            text-align: center;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .engine-database {
+            background-color: #009688;
+        }
+        .engine-deleted {
+            background-color: #795548;
+        }
+        .btn-restore {
+            background-color: #ff9800;
+        }
+        .btn-refresh {
+            background-color: #2196f3;
+            padding: 5px 10px;
+            margin-left: 10px;
+            cursor: pointer;
+        }
+        .auto-refresh-toggle {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+            margin-right: 10px;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .toggle-slider {
+            background-color: #4caf50;
+        }
+        input:checked + .toggle-slider:before {
+            transform: translateX(26px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>BT下载客户端</h1>
+        <p>使用WebTorrent引擎，边下载边播放</p>
+        <p>magnet链接搜索地址: <a href="https://skrcili.com/" target="_blank">skrcili.com</a></p>
+        
+        <div class="input-group">
+            <input type="text" id="magnetUri" placeholder="输入磁力链接..." value="magnet:?xt=urn:btih:08ada5a7a6183aae1e09d831df6748d566095a10">
+            <button id="addButton">添加种子</button>
+        </div>
+        
+        <div class="layout">
+            <div class="torrents-container">
+                <div class="auto-refresh-toggle">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="autoRefreshToggle" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span>自动更新任务进度</span>
+                    <button id="refreshButton" class="btn-refresh">手动刷新</button>
+                </div>
+                <div class="torrents" id="torrentsList">
+                    <p>无种子，请添加一个...</p>
+                </div>
+            </div>
+            
+            <div class="player-container">
+                <div class="video-container" id="videoContainer">
+                    <div class="no-video" id="noVideo">尚未选择视频</div>
+                    <video id="videoPlayer" class="video-player" controls autoplay style="display:none"></video>
+                </div>
+                <div class="now-playing" id="nowPlaying" style="display:none">正在播放：<span id="playingTitle"></span></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const addButton = document.getElementById('addButton');
+            const magnetInput = document.getElementById('magnetUri');
+            const torrentsList = document.getElementById('torrentsList');
+            const videoPlayer = document.getElementById('videoPlayer');
+            const noVideo = document.getElementById('noVideo');
+            const nowPlaying = document.getElementById('nowPlaying');
+            const playingTitle = document.getElementById('playingTitle');
+            const autoRefreshToggle = document.getElementById('autoRefreshToggle');
+            const refreshButton = document.getElementById('refreshButton');
+            
+            // 自动更新和手动刷新功能
+            let autoRefreshEnabled = true;
+            let refreshInterval = null;
+            let lastRefreshTime = 0;
+            const MIN_REFRESH_INTERVAL = 2000; // 最小2秒刷新间隔
+            let hasActiveTorrents = false; // 是否有活动的种子
+            
+            // 初始化自动刷新开关状态
+            autoRefreshToggle.checked = true;
+            
+            // 自动刷新开关事件
+            autoRefreshToggle.addEventListener('change', function() {
+                autoRefreshEnabled = this.checked;
+                if (autoRefreshEnabled) {
+                    // 启用自动刷新
+                    startAutoRefresh();
+                } else {
+                    // 禁用自动刷新
+                    stopAutoRefresh();
+                }
+            });
+            
+            // 手动刷新按钮事件
+            refreshButton.addEventListener('click', function() {
+                const now = Date.now();
+                // 防止过于频繁的刷新请求
+                if (now - lastRefreshTime > MIN_REFRESH_INTERVAL) {
+                    lastRefreshTime = now;
+                    loadTorrents();
+                }
+            });
+            
+            // 启动自动刷新
+            function startAutoRefresh() {
+                if (refreshInterval) {
+                    clearInterval(refreshInterval);
+                }
+                
+                // 根据是否有活动种子调整刷新间隔
+                const refreshTime = hasActiveTorrents ? 2000 : 5000;
+                refreshInterval = setInterval(() => {
+                    // 如果正在播放视频，降低刷新频率
+                    if (videoPlayer.style.display !== 'none') {
+                        // 如果正在播放视频且上次刷新在10秒内，跳过此次刷新
+                        if (Date.now() - lastRefreshTime < 10000) {
+                            return;
+                        }
+                    }
+                    
+                    loadTorrents();
+                }, refreshTime);
+            }
+            
+            // 停止自动刷新
+            function stopAutoRefresh() {
+                if (refreshInterval) {
+                    clearInterval(refreshInterval);
+                    refreshInterval = null;
+                }
+            }
+            
+            // 增加全局播放状态管理
+            const playerState = {
+                isPlaying: false,
+                hasError: false,
+                errorCount: 0,
+                lastErrorTime: 0,
+                errorLock: false,
+                
+                // 重置状态
+                reset() {
+                    this.isPlaying = false;
+                    this.hasError = false;
+                    this.errorCount = 0;
+                    this.lastErrorTime = 0;
+                    this.errorLock = false;
+                    console.log("播放状态已重置");
+                },
+                
+                // 设置错误锁
+                lockError() {
+                    this.errorLock = true;
+                    this.lastErrorTime = Date.now();
+                    console.log("错误锁已启用");
+                },
+                
+                // 检查是否可以处理新错误
+                canHandleError() {
+                    // 如果错误锁已启用且在5秒内，不处理新错误
+                    if (this.errorLock && Date.now() - this.lastErrorTime < 5000) {
+                        console.log("错误锁激活中，忽略新错误");
+                        return false;
+                    }
+                    // 重置错误锁
+                    this.errorLock = false;
+                    return true;
+                },
+                
+                // 记录新错误
+                registerError() {
+                    this.hasError = true;
+                    this.errorCount++;
+                    this.lastErrorTime = Date.now();
+                    this.lockError();
+                    console.log(`已记录错误 #${this.errorCount}`);
+                    return this.errorCount;
+                }
+            };
+            
+            // 当前播放信息
+            let currentlyPlaying = null;
+            
+            // 播放视频
+            function playVideo(infoHash, fileName) {
+                // 安全检查
+                if (!infoHash || !fileName) {
+                    console.error("播放参数无效:", { infoHash, fileName });
+                    alert("播放参数无效");
+                    return;
+                }
+                
+                // 停止正在播放的内容
+                stopPlayback();
+                
+                console.log(`准备播放: ${fileName} (${infoHash})`);
+                
+                // 获取文件信息
+                fetch(`/api/files/${infoHash}`)
+                    .then(response => {
+                        if (!response.ok) throw new Error("无法获取文件信息");
+                        return response.json();
+                    })
+                    .then(data => {
+                        // 检查文件
+                        if (!data.files || !Array.isArray(data.files) || data.files.length === 0) {
+                            throw new Error("种子中没有文件");
+                        }
+                        
+                        // 查找指定文件
+                        const fileToPlay = data.files.find(f => f.name === fileName);
+                        if (!fileToPlay) {
+                            throw new Error(`找不到文件: ${fileName}`);
+                        }
+                        
+                        // 检查下载进度
+                        const progress = fileToPlay.progress || 0;
+                        console.log(`播放文件进度: ${Math.round(progress * 100)}%`);
+                        
+                        // 进度过低时警告
+                        if (progress < 0.05) {
+                            if (!confirm(`文件下载进度较低(${Math.round(progress * 100)}%)，播放可能不流畅。确定要继续吗？`)) {
+                                console.log("用户取消播放");
+                                return;
+                            }
+                        }
+                        
+                        // 设置播放状态
+                        playerState.isPlaying = true;
+                        currentlyPlaying = { infoHash, fileName };
+                        
+                        // 设置播放器
+                        const videoUrl = `/api/stream/${infoHash}/${encodeURIComponent(fileName)}`;
+                        console.log("播放URL:", videoUrl);
+                        
+                        // 设置UI
+                        videoPlayer.src = videoUrl;
+                        videoPlayer.style.display = 'block';
+                        noVideo.style.display = 'none';
+                        nowPlaying.style.display = 'block';
+                        playingTitle.textContent = `${fileName} (${Math.round(progress * 100)}% 已下载)`;
+                        
+                        // 尝试播放
+                        const playPromise = videoPlayer.play();
+                        if (playPromise !== undefined) {
+                            playPromise.catch(error => {
+                                console.error("自动播放失败:", error);
+                                // 播放器需要用户交互才能开始播放
+                                alert("请点击播放按钮开始播放");
+                            });
+                        }
+                        
+                        // 当播放开始时关注播放体验
+                        focusOnPlayback();
+                    })
+                    .catch(error => {
+                        console.error("准备播放失败:", error);
+                        alert(`无法播放视频: ${error.message}`);
+                        stopPlayback();
+                    });
+            }
+            
+            // 停止视频播放 - 重构
+            function stopPlayback() {
+                console.log("正在停止播放...");
+                
+                // 1. 暂停视频
+                try {
+                    videoPlayer.pause();
+                } catch (e) {}
+                
+                // 2. 清除错误
+                try {
+                    videoPlayer.error = null;
+                } catch (e) {}
+                
+                // 3. 清除源
+                videoPlayer.src = "";
+                videoPlayer.removeAttribute('src');
+                
+                // 4. 重置UI
+                videoPlayer.style.display = 'none';
+                noVideo.style.display = 'block';
+                nowPlaying.style.display = 'none';
+                
+                // 5. 清理状态
+                currentlyPlaying = null;
+                playerState.reset();
+                
+                // 6. 恢复刷新
+                if (autoRefreshEnabled) {
+                    startAutoRefresh();
+                }
+                
+                console.log("播放已完全停止");
+            }
+            
+            // 格式化字节数
+            function formatBytes(bytes, decimals = 2) {
+                if (bytes === 0 || isNaN(bytes)) return '0 B';
+                
+                // 确保使用Number类型
+                if (typeof bytes === 'bigint' || typeof bytes === 'string') {
+                    bytes = Number(bytes);
+                }
+                
+                const k = 1024;
+                const dm = decimals < 0 ? 0 : decimals;
+                const sizes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+                
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+            }
+            
+            // 格式化已用时间
+            function formatTimeElapsed(dateAdded) {
+                if (!dateAdded) return '未知';
+                
+                const addedTime = new Date(dateAdded).getTime();
+                const now = Date.now();
+                const elapsed = now - addedTime;
+                
+                return formatDuration(elapsed);
+            }
+            
+            // 格式化预计剩余时间
+            function formatTimeRemaining(timeRemaining) {
+                if (!timeRemaining || timeRemaining <= 0) return '未知';
+                
+                // 如果timeRemaining是字符串（BigInt序列化后的结果），尝试转换为数字
+                if (typeof timeRemaining === 'string') {
+                    try {
+                        timeRemaining = parseInt(timeRemaining, 10);
+                    } catch (e) {
+                        return '未知';
+                    }
+                }
+                
+                return formatDuration(timeRemaining);
+            }
+            
+            // 通用时间格式化函数（毫秒转为可读格式）
+            function formatDuration(ms) {
+                if (!ms || ms <= 0 || isNaN(ms)) return '未知';
+                
+                // 转换为秒
+                const seconds = Math.floor(ms / 1000);
+                
+                if (seconds < 60) return `${seconds}秒`;
+                
+                const minutes = Math.floor(seconds / 60);
+                if (minutes < 60) return `${minutes}分钟${seconds % 60 > 0 ? ` ${seconds % 60}秒` : ''}`;
+                
+                const hours = Math.floor(minutes / 60);
+                if (hours < 24) return `${hours}小时${minutes % 60 > 0 ? ` ${minutes % 60}分钟` : ''}`;
+                
+                const days = Math.floor(hours / 24);
+                return `${days}天${hours % 24 > 0 ? ` ${hours % 24}小时` : ''}`;
+            }
+            
+            // 选择要下载的文件
+            function selectFiles(infoHash) {
+                fetch(`/api/files/${infoHash}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (!data.success || !data.files || data.files.length === 0) {
+                            alert('无法获取文件列表或种子中没有文件');
+                            return;
+                        }
+                        
+                        // 创建模态对话框
+                        const modal = document.createElement('div');
+                        modal.style.position = 'fixed';
+                        modal.style.left = '0';
+                        modal.style.top = '0';
+                        modal.style.width = '100%';
+                        modal.style.height = '100%';
+                        modal.style.backgroundColor = 'rgba(0,0,0,0.7)';
+                        modal.style.display = 'flex';
+                        modal.style.justifyContent = 'center';
+                        modal.style.alignItems = 'center';
+                        modal.style.zIndex = '1000';
+                        
+                        // 创建内容容器
+                        const content = document.createElement('div');
+                        content.style.backgroundColor = 'white';
+                        content.style.padding = '20px';
+                        content.style.borderRadius = '5px';
+                        content.style.width = '80%';
+                        content.style.maxWidth = '800px';
+                        content.style.maxHeight = '80%';
+                        content.style.overflow = 'auto';
+                        
+                        // 标题
+                        content.innerHTML = `<h2>请选择要下载的文件 - ${data.name}</h2>
+                                            <p>总文件数: ${data.files.length}</p>`;
+                        
+                        // 添加文件列表和复选框
+                        const filesList = document.createElement('div');
+                        filesList.style.marginBottom = '20px';
+                        
+                        // 添加全选/取消全选按钮
+                        const selectAllContainer = document.createElement('div');
+                        selectAllContainer.style.marginBottom = '10px';
+                        
+                        const selectAllCheckbox = document.createElement('input');
+                        selectAllCheckbox.type = 'checkbox';
+                        selectAllCheckbox.id = 'select-all';
+                        selectAllCheckbox.checked = true;
+                        
+                        const selectAllLabel = document.createElement('label');
+                        selectAllLabel.htmlFor = 'select-all';
+                        selectAllLabel.textContent = '全选/取消全选';
+                        
+                        selectAllContainer.appendChild(selectAllCheckbox);
+                        selectAllContainer.appendChild(selectAllLabel);
+                        filesList.appendChild(selectAllContainer);
+                        
+                        // 自动只选择视频文件按钮
+                        const videoOnlyContainer = document.createElement('div');
+                        videoOnlyContainer.style.marginBottom = '10px';
+                        
+                        const videoOnlyButton = document.createElement('button');
+                        videoOnlyButton.textContent = '只选择视频文件';
+                        videoOnlyButton.style.marginRight = '10px';
+                        videoOnlyButton.style.padding = '5px 10px';
+                        videoOnlyButton.style.backgroundColor = '#4caf50';
+                        videoOnlyButton.style.color = 'white';
+                        videoOnlyButton.style.border = 'none';
+                        videoOnlyButton.style.borderRadius = '4px';
+                        videoOnlyButton.style.cursor = 'pointer';
+                        
+                        videoOnlyContainer.appendChild(videoOnlyButton);
+                        filesList.appendChild(videoOnlyContainer);
+                        
+                        // 添加文件列表
+                        const filesTable = document.createElement('table');
+                        filesTable.style.width = '100%';
+                        filesTable.style.borderCollapse = 'collapse';
+                        filesTable.innerHTML = `
+                            <thead>
+                                <tr>
+                                    <th style="text-align:left; padding: 4px; border-bottom: 1px solid #ddd; width: 60%;">文件名</th>
+                                    <th style="text-align:right; padding: 4px; border-bottom: 1px solid #ddd; width: 15%;">大小</th>
+                                    <th style="text-align:right; padding: 4px; border-bottom: 1px solid #ddd; width: 15%;">进度</th>
+                                    <th style="text-align:center; padding: 4px; border-bottom: 1px solid #ddd; width: 10%;">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="files-tbody">
+                            </tbody>
+                        `;
+                        
+                        filesList.appendChild(filesTable);
+                        const tbody = filesTable.querySelector('#files-tbody');
+                        
+                        // 存储文件复选框的引用
+                        const fileCheckboxes = [];
+                        
+                        // 添加每个文件
+                        data.files.forEach((file, index) => {
+                            const row = document.createElement('tr');
+                            
+                            // 复选框单元格
+                            const checkCell = document.createElement('td');
+                            checkCell.style.padding = '8px';
+                            checkCell.style.borderBottom = '1px solid #ddd';
+                            
+                            const checkbox = document.createElement('input');
+                            checkbox.type = 'checkbox';
+                            checkbox.id = `file-${index}`;
+                            checkbox.checked = true;
+                            checkbox.dataset.index = index;
+                            checkbox.dataset.name = file.name;
+                            
+                            // 保存复选框引用
+                            fileCheckboxes.push(checkbox);
+                            
+                            checkCell.appendChild(checkbox);
+                            
+                            // 文件名单元格
+                            const nameCell = document.createElement('td');
+                            nameCell.style.padding = '8px';
+                            nameCell.style.borderBottom = '1px solid #ddd';
+                            nameCell.style.maxWidth = '0';
+                            nameCell.style.overflow = 'hidden';
+                            nameCell.style.textOverflow = 'ellipsis';
+                            nameCell.style.whiteSpace = 'nowrap';
+                            nameCell.title = file.name; // 鼠标悬停时显示完整文件名
+                            nameCell.textContent = file.name;
+                            
+                            // 大小单元格
+                            const sizeCell = document.createElement('td');
+                            sizeCell.style.padding = '8px';
+                            sizeCell.style.borderBottom = '1px solid #ddd';
+                            sizeCell.textContent = formatBytes(file.length);
+                            
+                            row.appendChild(checkCell);
+                            row.appendChild(nameCell);
+                            row.appendChild(sizeCell);
+                            
+                            tbody.appendChild(row);
+                        });
+                        
+                        // 全选/取消全选功能
+                        selectAllCheckbox.addEventListener('change', function() {
+                            fileCheckboxes.forEach(checkbox => {
+                                checkbox.checked = this.checked;
+                            });
+                        });
+                        
+                        // 只选择视频文件功能
+                        videoOnlyButton.addEventListener('click', function() {
+                            const videoExts = ['mp4', 'webm', 'mkv', 'avi', 'm4v', 'mov', 'wmv'];
+                            fileCheckboxes.forEach(checkbox => {
+                                const fileName = checkbox.dataset.name;
+                                const ext = fileName.split('.').pop().toLowerCase();
+                                checkbox.checked = videoExts.includes(ext);
+                            });
+                            
+                            // 更新全选复选框状态
+                            const allChecked = fileCheckboxes.every(checkbox => checkbox.checked);
+                            const someChecked = fileCheckboxes.some(checkbox => checkbox.checked);
+                            selectAllCheckbox.checked = allChecked;
+                            selectAllCheckbox.indeterminate = someChecked && !allChecked;
+                        });
+                        
+                        content.appendChild(filesList);
+                        
+                        // 添加按钮
+                        const buttonsContainer = document.createElement('div');
+                        buttonsContainer.style.textAlign = 'right';
+                        
+                        const cancelButton = document.createElement('button');
+                        cancelButton.textContent = '取消';
+                        cancelButton.style.marginRight = '10px';
+                        cancelButton.style.padding = '5px 10px';
+                        
+                        const confirmButton = document.createElement('button');
+                        confirmButton.textContent = '确认下载';
+                        confirmButton.style.padding = '5px 10px';
+                        confirmButton.style.backgroundColor = '#1a73e8';
+                        confirmButton.style.color = 'white';
+                        confirmButton.style.border = 'none';
+                        confirmButton.style.borderRadius = '4px';
+                        confirmButton.style.cursor = 'pointer';
+                        
+                        buttonsContainer.appendChild(cancelButton);
+                        buttonsContainer.appendChild(confirmButton);
+                        
+                        content.appendChild(buttonsContainer);
+                        modal.appendChild(content);
+                        
+                        document.body.appendChild(modal);
+                        
+                        // 点击取消按钮关闭对话框
+                        cancelButton.addEventListener('click', function() {
+                            document.body.removeChild(modal);
+                        });
+                        
+                        // 点击确认按钮下载选中的文件
+                        confirmButton.addEventListener('click', function() {
+                            const selectedFiles = fileCheckboxes
+                                .filter(checkbox => checkbox.checked)
+                                .map(checkbox => parseInt(checkbox.dataset.index));
+                            
+                            if (selectedFiles.length === 0) {
+                                alert('请至少选择一个文件下载');
+                                return;
+                            }
+                            
+                            // 发送选择的文件索引到服务器
+                            fetch(`/api/select/${infoHash}`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({ selectedFiles })
+                            })
+                            .then(response => response.json())
+                            .then(result => {
+                                if (result.success) {
+                                    alert(`已选择${selectedFiles.length}个文件下载`);
+                                    document.body.removeChild(modal);
+                                    loadTorrents(); // 重新加载种子列表
+                                } else {
+                                    alert(`选择文件失败: ${result.error}`);
+                                }
+                            })
+                            .catch(error => {
+                                console.error('选择文件请求失败:', error);
+                                alert('选择文件请求失败，请重试');
+                            });
+                        });
+                    })
+                    .catch(error => {
+                        console.error('获取文件列表失败:', error);
+                        alert('获取文件列表失败，请稍后再试');
+                    });
+            }
+            
+            // 加载种子列表
+            function loadTorrents() {
+                fetch('/api/list')
+                    .then(response => response.json())
+                    .then(data => {
+                        const torrents = data;
+                        lastRefreshTime = Date.now();
+                        
+                        // 检查是否有活动的种子
+                        hasActiveTorrents = torrents.some(t => 
+                            (t.downloadSpeed > 0 || t.uploadSpeed > 0 || 
+                             (t.progress > 0 && t.progress < 1))
+                        );
+                        
+                        // 更新自动刷新间隔
+                        if (autoRefreshEnabled) {
+                            startAutoRefresh();
+                        }
+                        
+                        if (torrents.length === 0) {
+                            torrentsList.innerHTML = '<div class="no-torrents">没有种子，请添加新种子</div>';
+                            return;
+                        }
+                        
+                        // 排序：置顶活动的下载任务，然后是已完成的
+                        torrents.sort((a, b) => {
+                            // 首先按完成状态排序（活动的任务置顶）
+                            if ((a.progress === 1) !== (b.progress === 1)) {
+                                return a.progress === 1 ? 1 : -1;
+                            }
+                            
+                            // 然后按是否暂停排序
+                            if (a.isPaused !== b.isPaused) {
+                                return a.isPaused ? 1 : -1;
+                            }
+                            
+                            // 最后按添加日期排序（最新的在前）
+                            return new Date(b.dateAdded) - new Date(a.dateAdded);
+                        });
+                        
+                        let html = '';
+                        torrents.forEach(torrent => {
+                            const progress = Math.round(torrent.progress * 100);
+                            const done = torrent.progress === 1;
+                            
+                            let statusClass = '';
+                            let statusText = '';
+                            
+                            if (done) {
+                                statusClass = 'status-done';
+                                statusText = '已完成';
+                            } else if (torrent.isPaused) {
+                                statusClass = 'status-paused';
+                                statusText = '已暂停';
+                                } else {
+                                statusClass = 'status-downloading';
+                                statusText = '下载中';
+                            }
+                            
+                            // 计算已用时间
+                            const timeElapsed = formatTimeElapsed(torrent.dateAdded);
+                            
+                            // 计算预计剩余时间
+                            const timeRemaining = !done && !torrent.isPaused && torrent.timeRemaining ? 
+                                formatTimeRemaining(torrent.timeRemaining) : '未知';
+                            
+                            html += `
+                            <div class="torrent" data-infohash="${torrent.infoHash}">
+                                <div class="torrent-header">
+                                    <h3 class="torrent-title">${torrent.name || '未知种子'}</h3>
+                                    <div class="torrent-status ${statusClass}">${statusText}</div>
+                                </div>
+                                
+                                <div class="torrent-details">
+                                    <div>大小: ${formatBytes(torrent.size)}</div>
+                                    <div>进度: ${progress}%</div>
+                                    <div>已下载: ${formatBytes(torrent.downloaded)}</div>
+                                    <div>已上传: ${formatBytes(torrent.uploaded)}</div>
+                                    <div>下载速度: ${formatBytes(torrent.downloadSpeed)}/s</div>
+                                    <div>种子: ${torrent.numSeeds || 0}, 连接: ${torrent.numPeers || 0}</div>
+                                    <div>已用时间: ${timeElapsed}</div>
+                                    ${!done && !torrent.isPaused && torrent.timeRemaining ?
+                                        `<div>预计剩余: ${timeRemaining}</div>` : ''}
+                                </div>
+                                
+                                ${!done && progress > 0 && progress < 100 ?
+                                    `<div class="progress-bar">
+                                        <div class="progress" style="width: ${progress}%"></div>
+                                    </div>` : ''}
+                                
+                                <div class="torrent-actions">
+                                    ${(!done) ?
+                                        `<button class="btn-toggle" data-infohash="${torrent.infoHash}" data-status="${torrent.isPaused ? 'resume' : 'pause'}">
+                                            ${torrent.isPaused ? '恢复' : '暂停'}
+                                        </button>` : ''
+                                    }
+                                    
+                                    ${(!done) ?
+                                        `<button class="btn-select" data-infohash="${torrent.infoHash}">选择文件</button>` : ''
+                                    }
+                                    
+                                    <button class="btn-play" data-infohash="${torrent.infoHash}">播放</button>
+                                    <button class="btn-files" data-infohash="${torrent.infoHash}">查看文件</button>
+                                    <button class="btn-delete" data-infohash="${torrent.infoHash}">删除</button>
+                                </div>
+                            </div>`;
+                        });
+                        
+                        torrentsList.innerHTML = html;
+                        
+                        // 添加事件监听
+                        attachTorrentEventListeners();
+                })
+                .catch(error => {
+                        console.error('获取种子列表失败:', error);
+                        torrentsList.innerHTML = `<p>获取种子列表失败: ${error.message}</p>`;
+                });
+            }
+            
+            // 首次加载
+            loadTorrents();
+            
+            // 启动自动刷新
+            if (autoRefreshEnabled) {
+                startAutoRefresh();
+            }
+            
+            // 在播放视频时专注于播放
+            function focusOnPlayback() {
+                // 如果正在播放视频，停止或降低自动刷新频率
+                if (videoPlayer.style.display !== 'none' && videoPlayer.src) {
+                    if (!autoRefreshEnabled) {
+                        return; // 如果用户已关闭自动刷新，不干扰
+                    }
+                    
+                    // 暂时停止当前的自动刷新
+                    stopAutoRefresh();
+                    
+                    // 设置低频率的刷新，关注当前播放的进度
+                    refreshInterval = setInterval(() => {
+                        // 只获取当前播放种子的信息
+                        if (currentlyPlaying) {
+                            updatePlayingProgress();
+                        }
+                    }, 5000); // 5秒更新一次播放进度
+                } else {
+                    // 恢复正常的自动刷新
+                    if (autoRefreshEnabled) {
+                        startAutoRefresh();
+                    }
+                }
+            }
+            
+            // 更新正在播放的视频进度
+            function updatePlayingProgress() {
+                if (!currentlyPlaying) return;
+                
+                fetch(`/api/torrents/${currentlyPlaying.infoHash}`)
+                    .then(response => response.json())
+                    .then(torrent => {
+                        if (torrent.files) {
+                            const currentFile = torrent.files.find(f => f.name === currentlyPlaying.fileName);
+                            if (currentFile) {
+                                const currentProgress = currentFile.progress || (torrent.progress || 0);
+                                playingTitle.textContent = `${currentlyPlaying.fileName} (${Math.round(currentProgress * 100)}% 已下载)`;
+                            }
+                        }
+                    })
+                    .catch(err => console.error('更新播放进度失败:', err));
+            }
+            
+            // 添加种子
+            addButton.addEventListener('click', function() {
+                const magnetURI = magnetInput.value.trim();
+                if (!magnetURI) {
+                    alert('请输入磁力链接');
+                    return;
+                }
+                
+                addButton.disabled = true;
+                addButton.textContent = '添加中...';
+                
+                fetch('/api/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ magnetURI })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        magnetInput.value = '';
+                        loadTorrents();
+                    } else {
+                        alert('添加失败: ' + (data.error || '未知错误'));
+                    }
+                })
+                .catch(error => {
+                    console.error('添加种子请求失败:', error);
+                    alert('添加请求失败，请查看控制台');
+                })
+                .finally(() => {
+                    addButton.disabled = false;
+                    addButton.textContent = '添加种子';
+                });
+            });
+            
+            // 视频错误处理 - 完全重构
+            videoPlayer.addEventListener('error', function(e) {
+                console.error("视频播放出错:", e);
+                
+                // 如果不能处理错误，直接返回
+                if (!playerState.canHandleError()) {
+                    return;
+                }
+                
+                // 记录错误
+                const errorCount = playerState.registerError();
+                console.error(`视频错误 #${errorCount}:`, videoPlayer.error ? videoPlayer.error.message : '未知错误');
+                
+                // 如果错误次数过多，停止播放
+                if (errorCount > 2) {
+                    console.warn("多次错误，强制停止播放");
+                    alert("视频播放多次失败，停止播放");
+                    stopPlayback();
+                    loadTorrents();
+                    return;
+                }
+                
+                // 检查播放状态
+                if (!currentlyPlaying || !currentlyPlaying.infoHash) {
+                    console.error("播放状态不完整:", currentlyPlaying);
+                    stopPlayback();
+                    return;
+                }
+                
+                // 检查文件状态
+                try {
+                    fetch(`/api/files/${currentlyPlaying.infoHash}`)
+                        .then(response => {
+                            if (!response.ok) throw new Error("无法获取文件信息");
+                            return response.json();
+                        })
+                        .then(data => {
+                            // 处理文件信息
+                            if (!data.files || !Array.isArray(data.files) || data.files.length === 0) {
+                                throw new Error("种子中没有文件");
+                            }
+                            
+                            // 检查文件是否存在
+                            const currentFile = data.files.find(f => f.name === currentlyPlaying.fileName);
+                            
+                            if (!currentFile) {
+                                alert("找不到视频文件，可能已被删除");
+                                stopPlayback();
+                                return;
+                            }
+                            
+                            // 检查文件进度
+                            const progress = currentFile.progress || 0;
+                            console.log(`文件[${currentlyPlaying.fileName}]下载进度: ${Math.round(progress * 100)}%`);
+                            
+                            if (progress < 0.1) {
+                                alert(`文件下载进度太低(${Math.round(progress * 100)}%)，暂时无法播放。请等待下载更多内容后再试。`);
+                                stopPlayback();
+                            } else {
+                                alert("视频播放失败，可能是格式不支持或数据损坏");
+                                stopPlayback();
+                            }
+                        })
+                        .catch(error => {
+                            console.error("检查文件状态失败:", error);
+                            alert(`播放错误: ${error.message}`);
+                            stopPlayback();
+                        });
+                } catch (error) {
+                    console.error("处理播放错误时出现异常:", error);
+                    alert("播放发生错误，停止播放");
+                    stopPlayback();
+                }
+            });
+            
+            // 视频结束后自动播放下一个
+            videoPlayer.addEventListener('ended', function() {
+                fetch('/api/list')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (!data.torrents || data.torrents.length === 0) return;
+                        
+                        // 找出当前播放视频的索引
+                        const currentIndex = data.torrents.findIndex(t => t.infoHash === currentlyPlaying.infoHash);
+                        if (currentIndex === -1) return;
+                        
+                        // 寻找下一个有视频的种子
+                        let nextIndex = (currentIndex + 1) % data.torrents.length;
+                        let searchCount = 0;
+                        
+                        while (searchCount < data.torrents.length) {
+                            const nextTorrent = data.torrents[nextIndex];
+                            // 检查是否有视频文件
+                            const hasVideo = nextTorrent.files && nextTorrent.files.some(f => 
+                                /\.(mp4|mkv|webm|avi|mov|m4v|mpg|mpeg|wmv)$/i.test(f.name)
+                            );
+                            
+                            if (hasVideo) {
+                                // 找出视频文件
+                                const videoFile = nextTorrent.files.find(f => 
+                                    /\.(mp4|mkv|webm|avi|mov|m4v|mpg|mpeg|wmv)$/i.test(f.name)
+                                );
+                                playVideo(nextTorrent.infoHash, videoFile ? videoFile.name : nextTorrent.name);
+                                break;
+                            }
+                            nextIndex = (nextIndex + 1) % data.torrents.length;
+                            searchCount++;
+                        }
+                    })
+                    .catch(error => console.error('获取下一个视频失败:', error));
+            });
+
+            // 添加种子事件监听器
+            function attachTorrentEventListeners() {
+                // 播放按钮
+                document.querySelectorAll('.btn-play').forEach(button => {
+                    if (button.disabled) return; // 跳过已禁用的按钮
+                    
+                    button.addEventListener('click', function() {
+                        const infoHash = this.dataset.infohash;
+                        
+                        // 获取文件列表
+                        fetch(`/api/files/${infoHash}`)
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success && data.files && data.files.length > 0) {
+                                    // 筛选视频文件
+                                    const videoFiles = data.files.filter(file => {
+                                        const ext = file.name.split('.').pop().toLowerCase();
+                                        return ['mp4', 'webm', 'mkv', 'avi', 'm4v', 'mov', 'wmv'].includes(ext);
+                                    });
+                                    
+                                    if (videoFiles.length > 0) {
+                                        // 确保文件名存在
+                                        if (!videoFiles[0].name) {
+                                            alert('视频文件信息不完整，无法播放');
+                                            return;
+                                        }
+                                        // 播放第一个视频文件
+                                        playVideo(infoHash, videoFiles[0].name);
+                                        focusOnPlayback();
+                                    } else {
+                                        alert('没有找到可播放的视频文件');
+                                    }
+                                } else {
+                                    alert('无法获取文件列表或种子中没有文件');
+                                }
+                            })
+                            .catch(error => {
+                                console.error('获取文件列表失败:', error);
+                                alert(`获取文件列表失败: ${error.message}`);
+                            });
+                    });
+                });
+                
+                // 查看文件按钮
+                document.querySelectorAll('.btn-files').forEach(button => {
+                    if (button.disabled) return; // 跳过已禁用的按钮
+                    
+                    button.addEventListener('click', function() {
+                        const infoHash = this.dataset.infohash;
+                        showFiles(infoHash);
+                    });
+                });
+                
+                // 删除按钮
+                document.querySelectorAll('.btn-delete').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const infoHash = this.dataset.infohash;
+                        const deleteConfirmMsg = '确定要删除这个种子吗？选择是否同时删除文件：\n点击"确定"将删除种子和文件\n点击"取消"只删除种子保留文件';
+                        
+                        if (confirm(deleteConfirmMsg)) {
+                            deleteTorrent(infoHash, true); // 删除文件
+                        } else {
+                            deleteTorrent(infoHash, false); // 保留文件
+                        }
+                    });
+                });
+                
+                // 暂停/恢复按钮
+                document.querySelectorAll('.btn-toggle').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const infoHash = this.dataset.infohash;
+                        toggleTorrent(infoHash);
+                    });
+                });
+                
+                // 选择文件按钮
+                document.querySelectorAll('.btn-select').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const infoHash = this.dataset.infohash;
+                        selectFiles(infoHash);
+                    });
+                });
+            }
+
+            // 显示文件列表
+            function showFiles(infoHash) {
+                fetch(`/api/files/${infoHash}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (!data.success || !data.files || data.files.length === 0) {
+                            alert('无法获取文件列表或种子中没有文件');
+                            return;
+                        }
+                        
+                        // 创建模态对话框
+                        const modal = document.createElement('div');
+                        modal.className = 'modal';
+                        modal.style.position = 'fixed';
+                        modal.style.left = '0';
+                        modal.style.top = '0';
+                        modal.style.width = '100%';
+                        modal.style.height = '100%';
+                        modal.style.backgroundColor = 'rgba(0,0,0,0.7)';
+                        modal.style.display = 'flex';
+                        modal.style.justifyContent = 'center';
+                        modal.style.alignItems = 'center';
+                        modal.style.zIndex = '1000';
+                        
+                        // 创建内容容器
+                        const content = document.createElement('div');
+                        content.className = 'modal-content';
+                        content.style.backgroundColor = 'white';
+                        content.style.padding = '20px';
+                        content.style.borderRadius = '5px';
+                        content.style.width = '80%';
+                        content.style.maxWidth = '800px';
+                        content.style.maxHeight = '80%';
+                        content.style.overflow = 'auto';
+                        
+                        // 标题
+                        content.innerHTML = `<h2>文件列表 - ${data.name}</h2>
+                                            <p>总文件数: ${data.files.length}</p>`;
+                        
+                        // 添加文件表格
+                        let table = `<table style="width:100%; border-collapse: collapse;">
+                                    <thead>
+                                        <tr>
+                                            <th style="text-align:left; padding: 8px; border-bottom: 1px solid #ddd;">文件名</th>
+                                            <th style="text-align:right; padding: 8px; border-bottom: 1px solid #ddd;">大小</th>
+                                            <th style="text-align:center; padding: 8px; border-bottom: 1px solid #ddd;">进度</th>
+                                            <th style="text-align:center; padding: 8px; border-bottom: 1px solid #ddd;">操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>`;
+                        
+                        // 添加文件行
+                        data.files.forEach(file => {
+                            const isVideoFile = ['.mp4', '.webm', '.mkv', '.avi', '.m4v', '.mov', '.wmv'].some(ext => 
+                                file.name.toLowerCase().endsWith(ext)
+                            );
+                            
+                            table += `<tr>
+                                    <td style="text-align:left; padding: 8px; border-bottom: 1px solid #eee; max-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${file.name}">${file.name}</td>
+                                    <td style="text-align:right; padding: 8px; border-bottom: 1px solid #eee;">${formatBytes(file.length)}</td>
+                                    <td style="text-align:center; padding: 8px; border-bottom: 1px solid #eee;">
+                                        <div class="progress-bar" style="width:100%; height:5px; background-color:#eee; margin-bottom:5px;">
+                                            <div style="width:${file.progress || 0}%; height:100%; background-color:#4caf50;"></div>
+                                        </div>
+                                        ${Math.round((file.progress || 0) * 100)}%
+                                    </td>
+                                    <td style="text-align:center; padding: 8px; border-bottom: 1px solid #eee;">
+                                        ${isVideoFile ? 
+                                            `<button class="btn-file-play" 
+                                                data-infohash="${infoHash}" 
+                                                data-filename="${file.name}"
+                                                style="padding: 3px 8px; margin-right: 5px; background-color: #4caf50; color: white; border: none; border-radius: 3px; cursor: pointer;">
+                                                播放
+                                            </button>` : ''
+                                        }
+                                        <a href="${file.download_url}" download style="padding: 3px 8px; background-color: #2196F3; color: white; text-decoration: none; border-radius: 3px;">下载</a>
+                                    </td>
+                                </tr>`;
+                        });
+                        
+                        table += `</tbody></table>`;
+                        content.innerHTML += table;
+                        
+                        // 关闭按钮
+                        const closeButton = document.createElement('button');
+                        closeButton.innerText = '关闭';
+                        closeButton.style.padding = '8px 16px';
+                        closeButton.style.marginTop = '15px';
+                        closeButton.style.backgroundColor = '#f44336';
+                        closeButton.style.color = 'white';
+                        closeButton.style.border = 'none';
+                        closeButton.style.borderRadius = '3px';
+                        closeButton.style.cursor = 'pointer';
+                        
+                        closeButton.addEventListener('click', () => {
+                            document.body.removeChild(modal);
+                        });
+                        
+                        content.appendChild(closeButton);
+                        
+                        // 添加模态框到页面
+                        modal.appendChild(content);
+                        document.body.appendChild(modal);
+                        
+                        // 添加文件播放按钮事件
+                        document.querySelectorAll('.btn-file-play').forEach(button => {
+                            button.addEventListener('click', function() {
+                                const infoHash = this.dataset.infohash;
+                                const fileName = this.dataset.filename;
+                                
+                                // 关闭模态框
+                                document.body.removeChild(modal);
+                                
+                                // 播放视频
+                                playVideo(infoHash, fileName);
+                                focusOnPlayback();
+                            });
+                        });
+                        
+                        // 点击模态框外部关闭
+                        modal.addEventListener('click', (e) => {
+                            if (e.target === modal) {
+                                document.body.removeChild(modal);
+                            }
+                        });
+                    })
+                    .catch(error => {
+                        console.error('获取文件列表失败:', error);
+                        alert(`获取文件列表失败: ${error.message}`);
+                    });
+            }
+
+            // 删除种子
+            function deleteTorrent(infoHash, deleteFiles) {
+                const confirmMessage = deleteFiles 
+                    ? '确定要删除这个种子及其所有文件吗？\n注意：文件删除后将无法恢复！' 
+                    : '确定要删除这个种子吗？文件将保留在磁盘上。';
+                
+                if (!confirm(confirmMessage)) {
+                    return;
+                }
+                
+                fetch(`/api/torrent/${infoHash}?deleteFiles=${deleteFiles}`, { 
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // 如果当前正在播放这个种子的视频，停止播放
+                        if (currentlyPlaying && currentlyPlaying.infoHash === infoHash) {
+                            alert('正在播放的视频已被删除，播放将停止。');
+                            stopPlayback();
+                        }
+                        
+                        // 显示成功消息
+                        alert(`成功删除种子${deleteFiles ? '和文件' : ''}`);
+                        
+                        // 重新加载种子列表
+                        loadTorrents();
+                    } else {
+                        alert(`删除失败: ${data.error || '未知错误'}`);
+                    }
+                })
+                .catch(error => {
+                    console.error('删除种子失败:', error);
+                    alert(`删除失败: ${error.message}`);
+                });
+            }
+
+            // 暂停/恢复种子下载
+            function toggleTorrent(infoHash) {
+                if (!infoHash) return;
+                
+                fetch(`/api/toggle/${infoHash}`, {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        console.log(`切换种子状态成功: ${data.message}`);
+                        // 重新加载种子列表
+                        loadTorrents();
+                    } else {
+                        alert(`操作失败: ${data.error || '未知错误'}`);
+                    }
+                })
+                .catch(error => {
+                    console.error('切换种子状态失败:', error);
+                    alert(`操作失败: ${error.message}`);
+                });
+            }
+        });
+    </script>
+</body>
+</html>
