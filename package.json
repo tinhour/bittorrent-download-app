@@ -17,7 +17,7 @@
     "download",
     "p2p"
   ],
-  "author": "Your Name",
+  "author": "tinhour",
   "license": "MIT",
   "dependencies": {
     "@prisma/client": "^5.4.1",
